@@ -1,0 +1,241 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <limits> 
+
+using namespace std;
+
+struct StudentNode {
+    string name;
+    int id;
+    int roomNumber;
+    StudentNode* next;
+};
+
+struct CheckoutStack {
+    string name;
+    int id;
+    int roomNumber;
+    CheckoutStack* next;
+};
+
+class Hostel {
+private:
+    StudentNode* head;
+    CheckoutStack* checkoutTop;
+
+public:
+    Hostel() : head(nullptr), checkoutTop(nullptr) {}
+
+    ~Hostel() {
+        while (head) {
+            StudentNode* temp = head;
+            head = head->next;
+            delete temp;
+        }
+        while (checkoutTop) {
+            CheckoutStack* temp = checkoutTop;
+            checkoutTop = checkoutTop->next;
+            delete temp;
+        }
+    }
+
+    
+    int getValidatedInt(const string& prompt) {
+        int value;
+        while (true) {
+            cout << prompt;
+            cin >> value;
+            if (cin.fail()) {
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                cout << "Invalid input! Please enter a valid number.\n";
+            }
+            else {
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                return value;
+            }
+        }
+    }
+
+    string getValidatedString(const string& prompt) {
+        string value;
+        cout << prompt;
+        cin >> ws;
+        getline(cin, value);
+        return value;
+    }
+
+    void addStudent() {
+        string name = getValidatedString("Enter Name: ");
+        int id = getValidatedInt("Enter ID: ");
+        int roomNumber = getValidatedInt("Enter Room Number: ");
+
+        StudentNode* newNode = new StudentNode();
+        newNode->name = name;
+        newNode->id = id;
+        newNode->roomNumber = roomNumber;
+        newNode->next = head;
+        head = newNode;
+
+        cout << "Student added successfully!" << endl;
+    }
+
+    void displayStudents() {
+        if (!head) {
+            cout << "No students found!" << endl;
+            return;
+        }
+
+        cout << "Student List:\n";
+        cout << "Name\tID\tRoom Number\n";
+
+        StudentNode* temp = head;
+        while (temp) {
+            cout << temp->name << "\t" << temp->id << "\t" << temp->roomNumber << endl;
+            temp = temp->next;
+        }
+    }
+
+    void checkoutStudent() {
+        if (!head) {
+            cout << "No students to checkout!" << endl;
+            return;
+        }
+
+        int id = getValidatedInt("Enter ID to checkout: ");
+
+        StudentNode* temp = head;
+        StudentNode* prev = nullptr;
+
+        while (temp && temp->id != id) {
+            prev = temp;
+            temp = temp->next;
+        }
+
+        if (!temp) {
+            cout << "Student not found!" << endl;
+            return;
+        }
+
+        CheckoutStack* newCheckout = new CheckoutStack();
+        newCheckout->name = temp->name;
+        newCheckout->id = temp->id;
+        newCheckout->roomNumber = temp->roomNumber;
+        newCheckout->next = checkoutTop;
+        checkoutTop = newCheckout;
+
+        if (prev) {
+            prev->next = temp->next;
+        }
+        else {
+            head = temp->next;
+        }
+
+        delete temp;
+        cout << "Student checked out successfully!" << endl;
+    }
+
+    void displayCheckoutHistory() {
+        if (!checkoutTop) {
+            cout << "No checkout history!" << endl;
+            return;
+        }
+
+        cout << "Checkout History:\n";
+        cout << "Name\tID\tRoom Number\n";
+
+        CheckoutStack* temp = checkoutTop;
+        while (temp) {
+            cout << temp->name << "\t" << temp->id << "\t" << temp->roomNumber << endl;
+            temp = temp->next;
+        }
+    }
+
+    void saveToFile() {
+        ofstream file("hostel_data.txt");
+        StudentNode* temp = head;
+
+        while (temp) {
+            file << temp->name << "," << temp->id << "," << temp->roomNumber << endl;
+            temp = temp->next;
+        }
+
+        file.close();
+        cout << "Data saved to file successfully!" << endl;
+    }
+
+    void loadFromFile() {
+        ifstream file("hostel_data.txt");
+
+        if (!file.is_open()) {
+            cout << "Error loading file!" << endl;
+            return;
+        }
+
+        string line;
+        while (getline(file, line)) {
+            size_t pos1 = line.find(",");
+            size_t pos2 = line.rfind(",");
+
+            string name = line.substr(0, pos1);
+            int id = stoi(line.substr(pos1 + 1, pos2 - pos1 - 1));
+            int roomNumber = stoi(line.substr(pos2 + 1));
+
+            StudentNode* newNode = new StudentNode();
+            newNode->name = name;
+            newNode->id = id;
+            newNode->roomNumber = roomNumber;
+            newNode->next = head;
+            head = newNode;
+        }
+
+        file.close();
+        cout << "Data loaded from file successfully!" << endl;
+    }
+};
+
+int main() {
+    Hostel hostel;
+    hostel.loadFromFile();
+
+    int choice;
+
+    do {
+        cout << "\n=== Hostel Management System ===\n";
+        cout << "1. Add Student\n";
+        cout << "2. Display Students\n";
+        cout << "3. Checkout Student\n";
+        cout << "4. Display Checkout History\n";
+        cout << "5. Save Data to File\n";
+        cout << "6. Exit\n";
+
+        choice = hostel.getValidatedInt("Enter your choice: ");
+
+        switch (choice) {
+        case 1:
+            hostel.addStudent();
+            break;
+        case 2:
+            hostel.displayStudents();
+            break;
+        case 3:
+            hostel.checkoutStudent();
+            break;
+        case 4:
+            hostel.displayCheckoutHistory();
+            break;
+        case 5:
+            hostel.saveToFile();
+            break;
+        case 6:
+            cout << "Exiting program..." << endl;
+            break;
+        default:
+            cout << "Invalid choice! Please try again." << endl;
+        }
+    } while (choice != 6);
+
+
+    return 0;
+}
